@@ -15,7 +15,7 @@ class Portfolio(object):
         raise NotImplementedError("Should implement generate_positions()!")
 
     @abstractmethod
-    def backtest_portfolio(self):
+    def generate_portfolio(self):
         """Provides the logic to generate the trading orders
         and subsequent equity curve (i.e. growth of total equity),
         as a sum of holdings and cash, and the bar-period returns
@@ -23,4 +23,4 @@ class Portfolio(object):
 
         Produces a portfolio object that can be examined by
         other classes/functions."""
-        raise NotImplementedError("Should implement backtest_portfolio()!")
+        raise NotImplementedError("Should implement generate_portfolio()!")
