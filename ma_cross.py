@@ -20,7 +20,6 @@ class MovingAverageCrossStrategy(Strategy):
     def __init__(self, symbol, bars, short_window=100, long_window=400):
         self.symbol = symbol
         self.bars = bars
-
         self.short_window = short_window
         self.long_window = long_window
 
@@ -69,7 +68,7 @@ class MarketOnClosePortfolio(Portfolio):
         return positions
 
     def backtest_portfolio(self):
-        portfolio = self.positions * self.bars['Close']
+        portfolio = self.positions[self.symbol] * self.bars['Close'] # how much much i own at the end of each day
         pos_diff = self.positions.diff()
 
         # portfolio['holdings'] = (self.positions * self.bars['Close']).sum(axis=1)
@@ -86,49 +85,52 @@ if __name__ == "__main__":
     # Obtain daily bars of AAPL from Yahoo Finance for the period
     # 1st Jan 1990 to 1st Jan 2002 - This is an example from ZipLine
     symbol = 'AAPL'
-    bars = data.DataReader(symbol, "yahoo", datetime.datetime(1990, 1, 1), datetime.datetime(2002, 1, 1))
+    short_window = 100
+    long_window = 400
+    initial_capital = 50000.0
+    bars = data.DataReader(symbol, "yahoo", datetime.datetime(2010, 1, 1), datetime.datetime(2020, 1, 1))
     print(bars)
 
     # Create a Moving Average Cross Strategy instance with a short moving
     # average window of 100 days and a long window of 400 days
-    mac = MovingAverageCrossStrategy(symbol, bars, short_window=100, long_window=400)
+    mac = MovingAverageCrossStrategy(symbol, bars, short_window=short_window, long_window=long_window)
     signals = mac.generate_signals()
 
     # Create a portfolio of AAPL, with $100,000 initial capital
-    portfolio = MarketOnClosePortfolio(symbol, bars, signals, initial_capital=100000.0)
+    portfolio = MarketOnClosePortfolio(symbol, bars, signals, initial_capital=initial_capital)
     returns = portfolio.backtest_portfolio()
 
     # Plot two charts to assess trades and equity curve
     fig = plt.figure()
     fig.patch.set_facecolor('white')  # Set the outer colour to white
-    ax1 = fig.add_subplot(211, ylabel='Price in $')
+    ax1 = fig.add_subplot(311, ylabel='Price in $')
 
     # Plot the AAPL closing price overlaid with the moving averages
-    bars['Close'].plot(ax=ax1, color='r', lw=2.)
-    signals[['short_mavg', 'long_mavg']].plot(ax=ax1, lw=2.)
+    bars['Close'].plot(legend=True, ax=ax1, color='b', lw=2.)
+    signals[['short_mavg', 'long_mavg']].plot(ax=ax1, color=['g', 'r'], lw=2.)
 
     # Plot the "buy" trades against AAPL
-    ax1.plot(signals.loc[signals.positions == 1.0].index,
-             signals.short_mavg[signals.positions == 1.0],
+    ax1.plot(signals.index[signals['positions'] == 1.0],
+             signals['short_mavg'][signals['positions'] == 1.0],
              '^', markersize=10, color='m')
 
     # Plot the "sell" trades against AAPL
-    ax1.plot(signals.loc[signals.positions == -1.0].index,
-             signals.short_mavg[signals.positions == -1.0],
+    ax1.plot(signals.index[signals.positions == -1.0],
+             signals['short_mavg'][signals['positions'] == -1.0],
              'v', markersize=10, color='k')
 
     # Plot the equity curve in dollars
-    ax2 = fig.add_subplot(212, ylabel='Portfolio value in $')
+    ax2 = fig.add_subplot(313, ylabel='Portfolio value in $')
     returns['total'].plot(ax=ax2, lw=2.)
 
     # Plot the "buy" and "sell" trades against the equity curve
-    ax2.plot(returns.loc[signals.positions == 1.0].index,
-             returns['total'][signals.positions == 1.0],
-             '^', markersize=10, color='g')
-    ax2.plot(returns.loc[signals.positions == -1.0].index,
-             returns['total'][signals.positions == -1.0],
-             'v', markersize=10, color='r')
+    ax2.plot(signals.index[signals.positions == 1.0],
+             returns['total'][signals['positions'] == 1.0],
+             '^', markersize=10, color='m')
+    ax2.plot(signals.index[signals.positions == -1.0],
+             returns['total'][signals['positions'] == -1.0],
+             'v', markersize=10, color='k')
 
     # Plot the figure
     fig.show()
-    input("gg")
+    input("press any key to exit..")
